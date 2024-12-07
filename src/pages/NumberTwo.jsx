@@ -1,100 +1,75 @@
-import axios from 'axios';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 
-const NumberTwo = () => {
-  const [username, setUsername] = useState('');
-  const [data, setData] = useState([]);
-  const [notFoundUsername, setNotFoundUsername] = useState(false);
-  function handleSearch(event) {
-    event.preventDefault();
+function App(){
+  const [username, setUsername] = useState("");
+  const [repos, setRepos] = useState([]);
+  const [error, setError] = useState("");
 
-
-    if (username.trim()) {
-      setNotFoundUsername(false);
-
-      axios.get(`https://api.github.com/users/${username}/repos`, {
-        headers: {
-          'Authorization': `token ${import.meta.env.VITE_GITHUB_TOKEN}`
-        }
+  function fetchRepos() {
+    setError("");
+    setRepos([]);
+    axios
+      .get(`https://api.github.com/users/${username}/repos`)
+      .then(function (response) {
+        const sortedRepos = response.data
+          .sort(function (a, b) {
+            return b.stars_count - a.stars_count;
+          })
+          .slice(0, 10);
+        setRepos(sortedRepos);
       })
-        .then(response => {
-          if (response.status === 200) {
-            if (response.data.length === 0) {
-              setNotFoundUsername(true);
-            } else {
-              setData(response.data);
-            }
-          }
-        })
-        .catch(er => {
-          setNotFoundUsername(true);
-          console.log(er);
-        });
-    } else {
-      setNotFoundUsername(true);
-    }
+      .catch(function (err) {
+        if (err.response && err.response.status == 404) {
+          setError("Foydalanuvchi topilmadi");
+        } else {
+          setError("Ma'lumot yuklashda xatolik yuz berdi");
+        }
+      });
   }
 
+  useEffect(function () {
+    if (username) {
+      fetchRepos();
+    }
+  }, [username]);
+
   return (
-    <div className="max-w-[1100px] w-full mx-auto py-12 flex flex-col justify-center items-center gap-8">
-      <h1 className="text-[30px] font-bold text-blue-600"> Git Hub </h1>
-
-      <form className="flex gap-4 bg-blue-500 max-w-[350px] w-full rounded-md shadow-lg">
-        <input
-          className="w-full px-4 py-2 border-[2px] border-blue-300 rounded-md focus:outline-none focus:border-blue-600"
-          onChange={(e) => { setUsername(e.target.value); }}
-          type="text"
-          placeholder="Enter your GitHub username.."
-        />
-        <button
-          className="pr-4 pl-4 text-center text-white bg-blue-700 rounded-md hover:bg-blue-600 transition-all duration-300"
-          onClick={handleSearch}
-        >
-          Search
-        </button>
-      </form>
-
-      <p className="text-[18px] mt-4 text-red-500 font-medium">
-        {notFoundUsername ? 'GitHub username topilmadi' : ''}
-      </p>
-
-      <div className="mt-8 w-full max-w-[800px] flex flex-col gap-8">
-        {data.length > 0 ? (
-          data.map((value, index) => (
-            <div
-              key={index}
-              className="border-2 border-gray-300 rounded-lg p-6 flex items-center gap-6 shadow-md hover:shadow-lg transition-shadow duration-300 bg-white"
-            >
-              <img
-                src={value.owner.avatar_url}
-                alt={`${value.name} Avatar`}
-                className="w-[60px] h-[60px] rounded-full object-cover"
-              />
-              <div className="text-gray-800">
-                <p className="text-lg font-bold">Repo Name: <span className="font-normal">{value.name}</span></p>
-                <p className="flex items-center gap-2 text-sm">
-                  <strong>Star:</strong>
-                  <span className="text-yellow-400">{value.stargazers_count}</span>
-                </p>
-                <p className="text-sm">
-                  <strong>Vercel link:</strong>
+    <div className="min-h-screen bg-gray-100 flex flex-col items-center p-4">
+      <h1 className="text-2xl font-bold text-gray-800 mb-4">GitHub Repozitoriyalari</h1>
+      <input
+        type="text"
+        placeholder="GitHub username kiriting"
+        value={username}
+        onChange={function (e) {
+          setUsername(e.target.value);
+        }}
+        className="border rounded px-4 py-2 w-full max-w-md mb-4"
+      />
+      {error && <p className="text-red-500 mb-4">{error}</p>}
+      <div className="w-full max-w-md">
+        {repos.length > 0 && (
+          <ul className="bg-white shadow-md rounded-md p-4">
+            {repos.map(function (repo) {
+              return (
+                <li key={repo.id} className="mb-2">
                   <a
-                    href={value.homepage || '#'}
-                    className={`text-blue-500 underline ${value.homepage ? '' : 'pointer-events-none opacity-50'}`}
+                    href={repo.html_url}
                     target="_blank"
                     rel="noopener noreferrer"
+                    className="text-blue-500 hover:underline"
                   >
-                    {value.homepage || 'No link available'}
+                    {repo.name}
                   </a>
-                </p>
-              </div>
-            </div>
-          ))
-        ) : null}
+                  <span className="text-gray-600"> - ⭐ {repo.stars_count}</span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </div>
     </div>
-
   );
 };
 
-export default NumberTwo;
+export default App;
