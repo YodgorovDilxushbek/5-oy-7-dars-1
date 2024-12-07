@@ -14,7 +14,7 @@ const NumberOne = () => {
     apiClient
       .get(`/latest`, { params: { from: fromCurrency, to: toCurrency } })
       .then((data) => {
-        const rate = data.rates[toCurrency];
+        const rate = data.rates[toCurrency]; 
         setRate(rate);
       })
       .catch((err) => {
